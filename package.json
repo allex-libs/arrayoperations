@@ -1,0 +1,28 @@
+{
+  "name": "allex_arrayoperationslib",
+  "version": "1.0.0",
+  "description": "AllexJS lib that embeds the functionality of allex_arrayoperationslowlevellib",
+  "main": "index.js",
+  "scripts": {
+    "test": "allex-mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/allex-libs/arrayoperations.git"
+  },
+  "dependencies": {
+    "allex_arrayoperationslowlevellib": "1.x"
+  },
+  "keywords": [
+    "ecosystem:AllexJS",
+    "array",
+    "operations",
+    "lib"
+  ],
+  "author": "Andrija Petrovic <andrija.hers@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/allex-libs/arrayoperations/issues"
+  },
+  "homepage": "https://github.com/allex-libs/arrayoperations#readme"
+}
