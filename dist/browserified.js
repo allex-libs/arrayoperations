@@ -1,18 +1,4 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-var lR = ALLEX.execSuite.libRegistry;
-lR.register('allex_arrayoperationslib', require('./index')(
-  ALLEX
-));
-
-},{"./index":2}],2:[function(require,module,exports){
-function createLib (execlib) {
-  var lib = execlib.lib;
-  return require('allex_arrayoperationslowlevellib')(lib.extend, lib.readPropertyFromDotDelimitedString, lib.isFunction, lib.Map, lib.AllexJSONizingError);
-}
-
-module.exports = createLib;
-
-},{"allex_arrayoperationslowlevellib":3}],3:[function(require,module,exports){
 module.exports = function createArryOperations(extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError) {
   function union(a1, a2) {
     var ret = a1.slice();
@@ -27,16 +13,6 @@ module.exports = function createArryOperations(extend, readPropertyFromDotDelimi
       }
     });
     a1 = null;
-  }
-
-  function finderwithindex(findobj, propname, propval, item, index){
-    try {
-      if (item[propname] === propval) {
-        findobj.element = item;
-        findobj.index = index;
-        return true;
-      }
-    } catch (ignore) {}
   }
 
   function finder(findobj, propname, propval, item){
@@ -75,12 +51,52 @@ module.exports = function createArryOperations(extend, readPropertyFromDotDelimi
     return a.reduce(lastfinder.bind(null, propname, propval), void 0);
   }
 
+  function finderwithindex(findobj, propname, propval, item, index){
+    try {
+      if (item[propname] === propval) {
+        findobj.element = item;
+        findobj.index = index;
+        return true;
+      }
+    } catch (ignore) {}
+  }
+
   function findElementAndIndexWithProperty(a, propname, propval) {
     if (!(a && a.some)) {
       return;
     }
     var und, findobj = {element: und, index: und};
     a.some(finderwithindex.bind(null, findobj, propname, propval));
+    return findobj;
+  }
+
+  function compare (a, b) {
+    if (a == b) {return 0;}
+    if (a > b) {return 1;}
+    return -1;
+  }
+
+  function finderwithindexandinsertindex(findobj, propname, propval, item, index){
+    var val, cmpval, und;
+    try {
+      val = item[propname];
+      if (val === propval) {
+        findobj.element = item;
+        findobj.index = index;
+        return true;
+      }
+      cmpval = compare(val, propval);
+      if (cmpval<0) {
+        findobj.insertafter = index;
+      }
+    } catch (ignore) {}
+  }
+  function findElementIndexAndInsertIndexWithProperty(a, propname, propval) {
+    if (!(a && a.some)) {
+      return;
+    }
+    var und, findobj = {element: und, index: und, insertafter: und};
+    a.some(finderwithindexandinsertindex.bind(null, findobj, propname, propval));
     return findobj;
   }
 
@@ -328,6 +344,7 @@ module.exports = function createArryOperations(extend, readPropertyFromDotDelimi
     findElementWithProperty: findElementWithProperty,
     findLastElementWithProperty: findLastElementWithProperty,
     findElementAndIndexWithProperty: findElementAndIndexWithProperty,
+    findElementIndexAndInsertIndexWithProperty: findElementIndexAndInsertIndexWithProperty,
     pivot : pivot,
     unpivot : unpivot,
     Pivoter : Pivoter,
@@ -342,4 +359,18 @@ module.exports = function createArryOperations(extend, readPropertyFromDotDelimi
   return ret;
 }; 
 
-},{}]},{},[1]);
+},{}],2:[function(require,module,exports){
+var lR = ALLEX.execSuite.libRegistry;
+lR.register('allex_arrayoperationslib', require('./index')(
+  ALLEX
+));
+
+},{"./index":3}],3:[function(require,module,exports){
+function createLib (execlib) {
+  var lib = execlib.lib;
+  return require('allex_arrayoperationslowlevellib')(lib.extend, lib.readPropertyFromDotDelimitedString, lib.isFunction, lib.Map, lib.AllexJSONizingError);
+}
+
+module.exports = createLib;
+
+},{"allex_arrayoperationslowlevellib":1}]},{},[2]);
