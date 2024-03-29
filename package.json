@@ -1,6 +1,6 @@
 {
   "name": "allex_arrayoperationslib",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AllexJS lib that embeds the functionality of allex_arrayoperationslowlevellib",
   "main": "index.js",
   "scripts": {

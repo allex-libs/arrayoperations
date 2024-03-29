@@ -1,5 +1,147 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+var lR = ALLEX.execSuite.libRegistry;
+lR.register('allex_arrayoperationslib', require('./index')(
+  ALLEX
+));
+
+},{"./index":2}],2:[function(require,module,exports){
+function createLib (execlib) {
+  var lib = execlib.lib;
+  return require('allex_arrayoperationslowlevellib')(lib.extend, lib.readPropertyFromDotDelimitedString, lib.isFunction, lib.Map, lib.AllexJSONizingError);
+}
+
+module.exports = createLib;
+
+},{"allex_arrayoperationslowlevellib":6}],3:[function(require,module,exports){
+function createArrayHelpers (extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError) {
+  'use strict';
+
+  function equaler (item, propval, scalarpropname, index) {
+    return item[scalarpropname] == propval[index];
+  }
+  function propnamevalequal (item, propname, propval) {
+    var ret = propname.every(equaler.bind(null, item, propval));
+    item = null;
+    propval = null;
+    return ret;
+  }
+  function propvals (item, propname) {
+    var ret = propname.map(function (scalarpropname) {
+      return item[scalarpropname];
+    });
+    item = null;
+    return ret;
+  }
+
+  function finderwithindex(findobj, propname, propval, item, index){
+    if (item && propnamevalequal(item, propname, propval)) {
+      findobj.element = item;
+      findobj.index = index;
+      return true;
+    }
+  }
+
+  function plaincompare (a, b) {
+    if (a == b) {return 0;}
+    if (a > b) {return 1;}
+    return -1;
+  }
+  function scalarcompare(ret, item, index) {
+    if (ret.ret != 0) {
+      return ret;
+    }
+    var pcres = plaincompare(item, ret.other[index]);
+    ret.ret = pcres;
+    return ret;
+  }
+  function compare (a, b) {
+    return a.reduce(scalarcompare, {other: b, ret: 0}).ret;
+  }
+  function finderwithindexandinsertindex(findobj, propname, propval, item, index){
+    var val, cmpval;
+    val = propvals(item, propname);
+    cmpval = compare(val, propval);
+    if (cmpval == 0) {
+      findobj.element = item;
+      findobj.index = index;
+      return true;
+    }
+    if (cmpval<0) {
+      findobj.insertafter = index;
+    }
+  }
+
+  return {
+    finderwithindex: finderwithindex,
+    finderwithindexandinsertindex: finderwithindexandinsertindex
+  };
+}
+module.exports = createArrayHelpers;
+},{}],4:[function(require,module,exports){
+function createHelpers (extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError) {
+  'use strict';
+
+  return {
+    scalar: require('./scalarcreator')(extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError),
+    array: require('./arraycreator')(extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError)
+  };
+}
+module.exports = createHelpers;
+},{"./arraycreator":3,"./scalarcreator":5}],5:[function(require,module,exports){
+function createScalarHelpers (extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError) {
+  'use strict';
+
+  function finderwithindex(findobj, propname, propval, item, index){
+    if (item && item[propname] === propval) {
+      findobj.element = item;
+      findobj.index = index;
+      return true;
+    }
+  }
+
+  
+  function compare (a, b) {
+    if (a == b) {return 0;}
+    if (a > b) {return 1;}
+    return -1;
+  }
+  function finderwithindexandinsertindex(findobj, propname, propval, item, index){
+    var val, cmpval;
+    val = item[propname];
+    if (val === propval) {
+      findobj.element = item;
+      findobj.index = index;
+      return true;
+    }
+    cmpval = compare(val, propval);
+    if (cmpval<0) {
+      findobj.insertafter = index;
+    }
+  }
+
+  return {
+    finderwithindex: finderwithindex,
+    finderwithindexandinsertindex: finderwithindexandinsertindex
+  };
+}
+module.exports = createScalarHelpers;
+},{}],6:[function(require,module,exports){
 module.exports = function createArryOperations(extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError) {
+
+  var helpers = require('./helpers')(extend, readPropertyFromDotDelimitedString, isFunction, Map, AllexJSONizingError);
+  function isArray (val) {return 'object' === typeof(val) && val instanceof Array;}
+  function helperselector (propname, propval, helpername) {
+    if (isArray(propname)) {
+      if (!isArray(propval)) {
+        throw new Error('propname-propval type mismatch');
+      }
+      if (propname.length != propval.length) {
+        throw new Error('propname-propval length mismatch');
+      }
+      return helpers.array[helpername];
+    }
+    return helpers.scalar[helpername];
+  }
   function union(a1, a2) {
     var ret = a1.slice();
     appendNonExistingItems(ret, a2);
@@ -45,20 +187,14 @@ module.exports = function createArryOperations(extend, readPropertyFromDotDelimi
   }
 
   function findLastElementWithProperty(a, propname, propval) {
+    var ret;
     if (!(a && a.reduce)) {
       return;
     }
-    return a.reduce(lastfinder.bind(null, propname, propval), void 0);
-  }
-
-  function finderwithindex(findobj, propname, propval, item, index){
-    try {
-      if (item[propname] === propval) {
-        findobj.element = item;
-        findobj.index = index;
-        return true;
-      }
-    } catch (ignore) {}
+    ret = a.reduce(lastfinder.bind(null, propname, propval), void 0);
+    propname = null;
+    propval = null;
+    return ret;
   }
 
   function findElementAndIndexWithProperty(a, propname, propval) {
@@ -66,37 +202,19 @@ module.exports = function createArryOperations(extend, readPropertyFromDotDelimi
       return;
     }
     var und, findobj = {element: und, index: und};
-    a.some(finderwithindex.bind(null, findobj, propname, propval));
+    a.some(helperselector(propname, propval, 'finderwithindex').bind(null, findobj, propname, propval));
     return findobj;
   }
 
-  function compare (a, b) {
-    if (a == b) {return 0;}
-    if (a > b) {return 1;}
-    return -1;
-  }
-
-  function finderwithindexandinsertindex(findobj, propname, propval, item, index){
-    var val, cmpval, und;
-    try {
-      val = item[propname];
-      if (val === propval) {
-        findobj.element = item;
-        findobj.index = index;
-        return true;
-      }
-      cmpval = compare(val, propval);
-      if (cmpval<0) {
-        findobj.insertafter = index;
-      }
-    } catch (ignore) {}
-  }
   function findElementIndexAndInsertIndexWithProperty(a, propname, propval) {
     if (!(a && a.some)) {
       return;
     }
-    var und, findobj = {element: und, index: und, insertafter: und};
-    a.some(finderwithindexandinsertindex.bind(null, findobj, propname, propval));
+    var und, findobj = {element: und, index: und, insertafter: und}, _fo = findobj;
+    a.some(helperselector(propname, propval, 'finderwithindexandinsertindex').bind(null, _fo, propname, propval));
+    _fo = null;
+    propname = null;
+    propval = null;
     return findobj;
   }
 
@@ -359,18 +477,4 @@ module.exports = function createArryOperations(extend, readPropertyFromDotDelimi
   return ret;
 }; 
 
-},{}],2:[function(require,module,exports){
-var lR = ALLEX.execSuite.libRegistry;
-lR.register('allex_arrayoperationslib', require('./index')(
-  ALLEX
-));
-
-},{"./index":3}],3:[function(require,module,exports){
-function createLib (execlib) {
-  var lib = execlib.lib;
-  return require('allex_arrayoperationslowlevellib')(lib.extend, lib.readPropertyFromDotDelimitedString, lib.isFunction, lib.Map, lib.AllexJSONizingError);
-}
-
-module.exports = createLib;
-
-},{"allex_arrayoperationslowlevellib":1}]},{},[2]);
+},{"./helpers":4}]},{},[1]);
